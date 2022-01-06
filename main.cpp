@@ -2,12 +2,13 @@
 using namespace std;
 
 vector<vector<char>> arch;
-
+int R, C, S, D;
 
 class Module {
 private:
     int clb, mul, idx;
     int r = 0, c = 0;
+    // r, c stand for the upper left corner
 
 public:
     Module(int _idx, int _clb, int _mul) {
@@ -57,7 +58,7 @@ const vector<string> split(const string& str, const string& pattern) {
     return result;
 }
 
-void construct_map(int R, int C, int S, int D) {
+void construct_map() {
     vector<char> single_row;
     int col = S;
     for (int _ = 0; _ < S; _++) {
@@ -93,6 +94,22 @@ inline bool comp(Module& a, Module& b) {
 }
 
 
+void place(Module& m) {
+    int left_col;
+    for (int r = 0; r < R; r++) {
+        for (int c = 0; c < C; c++) {
+            if (arch[r][c] == 'X')    // this position is already occupied
+                continue;
+            else {
+                left_col = c;
+                // to be done.......
+            }
+        }
+    }
+}
+
+
+
 int main(int argc, char** argv) {
     string arch_file = argv[1], module_file = argv[2], net_file = argv[3], floorplan_file = argv[4];
 
@@ -102,7 +119,6 @@ int main(int argc, char** argv) {
     vector<Module> all_module;
 
     // set FPGA architecture
-    int R, C, S, D;
     string FPGA_arch;
     getline(ifs_arch, FPGA_arch);
     ifs_arch.close();
@@ -110,11 +126,10 @@ int main(int argc, char** argv) {
     C = stoi(split(FPGA_arch, " ")[1]);
     S = stoi(split(FPGA_arch, " ")[2]);
     D = stoi(split(FPGA_arch, " ")[3]);
-    printf("R = %d, C = %d, S = %d, D = %d\n", R, C, S, D);
-    
-    construct_map(R, C, S, D);
+    construct_map();
     print_map();
 
+    // save all the modules and sort them by (mul, clb)
     if (!ifs_module.is_open())
         cout << "fail to open file\n";
     else {
