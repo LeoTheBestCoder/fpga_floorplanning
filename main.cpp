@@ -29,7 +29,7 @@ public:
         return {r, c};
     }
     void info() {
-        printf("Module No.%3d: clb = %3d, mul = %3d, pos = (r=%3d, c=%3d)\n", idx, clb, mul, r, c);
+        printf("Module No.%3d: clb = %3d, mul = %3d, pos = (r=%d, c=%d)\n", idx, clb, mul, r, c);
     }
 };
 
@@ -56,7 +56,6 @@ const vector<string> split(const string& str, const string& pattern) {
 }
 
 int main() {
-    vector<string> content;
     vector<Module> all_module;
 
     ifstream ifs("benchmarks/case1.module", ios::in);
@@ -65,21 +64,14 @@ int main() {
     else {
         string s;
         while (getline(ifs, s)) {
-            // cout << s << "\n";
-            content.push_back(s);
+            vector<string> temp = split(s, " ");
+            all_module.push_back(Module(stoi(temp[0]), stoi(temp[1]), stoi(temp[2])));
         }
         ifs.close();
     }
-    ifs.close();
 
-    // for (const auto line: content){
-    //     cout << line << "\n";
-    // }
-
-    cout << content.size() << "\n";
-
-    for (const auto ch: split("hello world today is Thursday", " ")) {
-        cout << ch << "\n";
-    }
+    for (auto m: all_module)
+        m.info();
+        
     return 0;
 }
