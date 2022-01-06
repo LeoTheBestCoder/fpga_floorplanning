@@ -36,7 +36,6 @@ public:
     }
 };
 
-
 const vector<string> split(const string& str, const string& pattern) {
     vector<string> result;
     string::size_type begin, end;
@@ -89,6 +88,11 @@ void print_map() {
 }
 
 
+inline bool comp(Module& a, Module& b) {
+    return a.get_mul() != b.get_mul() ? a.get_mul() > b.get_mul() : a.get_clb() > b.get_clb();
+}
+
+
 int main(int argc, char** argv) {
     string arch_file = argv[1], module_file = argv[2], net_file = argv[3], floorplan_file = argv[4];
 
@@ -110,8 +114,6 @@ int main(int argc, char** argv) {
     
     construct_map(R, C, S, D);
     print_map();
-    exit(0);
-
 
     if (!ifs_module.is_open())
         cout << "fail to open file\n";
@@ -123,6 +125,8 @@ int main(int argc, char** argv) {
         }
         ifs_module.close();
     }
+
+    sort(all_module.begin(), all_module.end(), comp);
 
     for (auto m: all_module)
         m.info();
