@@ -10,6 +10,7 @@ int R, C, S, D;
 int prev_height;
 int highest_in_the_row;
 int start_row;
+string arch_file, module_file, net_file, floorplan_file;
 
 class Module {
 private:
@@ -119,8 +120,10 @@ void print_map() {
         for (const auto ch: line) {
             // cout << ch << " ";
             // cout << ch;
-            if (ch != 'C' && ch != 'M')
+            if (ch == 'X')
                 printf(GREEN"%c", ch);
+            else if (ch == 'V')
+                printf(RED"%c", ch);
             else
                 printf(NONE"%c", ch);
         }
@@ -142,6 +145,15 @@ void drawX(int r, int c, int w, int h, int idx) {
         for (int j = c; j < c + w; j++) {
             // arch[i][j] = idx + '0';
             arch[i][j] = 'X';
+        }
+    }
+}
+
+void drawV(int r, int c, int w, int h, int idx) {
+    for (int i = r; i < r + h; i++) {
+        for (int j = c; j < c + w; j++) {
+            // arch[i][j] = idx + '0';
+            arch[i][j] = 'V';
         }
     }
 }
@@ -231,9 +243,100 @@ void place(Module& m) {
 }
 
 
+void global_search(Module& m) {
+    // int acc_R = 0;
+    int height, width;
+    int clb_needed = m.get_clb(), mul_needed = m.get_mul(), idx = m.get_idx();
+    int clb_included = 0, mul_included = 0;
+    // int r = start_row;
+    bool same_row = true;
+    bool can_put = false;
+    printf("=====================\n");
+    printf("Placing Module No.%3d\n", idx);
+    for (int r = 0; r < R; r++) {
+        for (int c = 0; c < C; c++) {
+            if (arch[r][c] != 'C' && arch[r][c] != 'M')    // this position is already occupied
+                continue;
+            else {
+                if (mul_needed == 0) 
+                    height = 1;
+                else
+                    height = mul_needed * 3 <= R ? mul_needed * 3 : R;
+                width = 1;
+
+                if (arch[r][c + width - 1] == 'C')
+                    clb_included += 1 * height;
+                if (arch[r][c + width - 1] == 'M')
+                    mul_included += (int) height / 3;
+
+                if (mul_included >= mul_needed && clb_included >= clb_needed) {
+                    can_put = true;
+                    start_row = r;
+                    prev_height = height;
+                    printf("Module No.%3d is put at (r, c) = (%3d, %3d) with (w, h) = (%2d, %2d)\n", idx, r, c, width, height);
+                    drawV(r, c, width, height, idx);
+                    m.set_pos(r, c, width, height);
+                    m.put_success();
+                    return;
+                }
+                while (mul_included < mul_needed || clb_included < clb_needed) {
+                    width++;
+                    if (c + width - 1 > C - 1) {
+                        same_row = false;
+                        break;
+                    }
+                    if (arch[r][c + width - 1] == 'C')
+                        clb_included += 1 * height;
+                    if (arch[r][c + width - 1] == 'M')
+                        mul_included += (int) height / 3;
+                    if (mul_included >= mul_needed && clb_included >= clb_needed) {
+                        can_put = true;
+                        start_row = r;
+                        prev_height = height;
+                        printf("Module No.%3d is put at (r, c) = (%3d, %3d) with (w, h) = (%2d, %2d)\n", idx, r, c, width, height);
+                        drawV(r, c, width, height, idx);
+                        m.set_pos(r, c, width, height);
+                        m.put_success();
+                        return;
+                    }
+                }
+                if (!same_row) {
+                    mul_included = 0;
+                    clb_included = 0;
+                    break;
+                }
+            }
+        }
+        mul_included = 0;
+        clb_included = 0;
+    }
+}
+
+
+int calcHPWL() {
+    int total = 0;
+    ifstream ifs_net("benchmarks/" + net_file, ios::in);
+    ifstream ifs_flr("outputs/" + arch_file.substr(0, 5) + ".floorplan");
+    map<int, double> center_x_dict;
+    map<int, double> center_y_dict;
+    string s;
+    while (getline(ifs_flr, s)) {
+        vector<string> temp = split(s, " ");
+        center_x_dict[stoi(temp[0])] = stoi(temp[3]) % 2 != 0 ? stoi(temp[1]) + stoi(temp[3]) / 2 : stoi(temp[1]) + (stoi(temp[3]) - 1) / 2;
+        center_y_dict[stoi(temp[0])] = stoi(temp[4]) % 2 != 0 ? stoi(temp[2]) + stoi(temp[4]) / 2 : stoi(temp[2]) + (stoi(temp[4]) - 1) / 2;
+    }
+    ifs_flr.close();
+    // to be done ...
+    return total;
+}
+
+
 
 int main(int argc, char** argv) {
-    string arch_file = argv[1], module_file = argv[2], net_file = argv[3], floorplan_file = argv[4];
+    arch_file = argv[1];
+    module_file = argv[2];
+    net_file = argv[3];
+    floorplan_file = argv[4];
 
     ifstream ifs_arch("benchmarks/" + arch_file, ios::in);
     ifstream ifs_module("benchmarks/" + module_file, ios::in);
@@ -241,6 +344,7 @@ int main(int argc, char** argv) {
     ofs_floorplan.open("outputs/" + arch_file.substr(0, 5) + ".floorplan");
 
     vector<Module> all_module;
+    int HPWL;
 
     // set FPGA architecture
     string FPGA_arch;
@@ -272,8 +376,21 @@ int main(int argc, char** argv) {
         m.showinfo();
         // print_map();
     }
-    printf("=====================\nFINISH\n=====================\n");
+    for (auto &m: all_module) {
+        // if (m.status())
+        //     printf("Module No.%3d is placed successfully!\n", m.get_idx());
+        // else
+        //     printf("Module No.%3d needs global search.\n", m.get_idx());
+        if (!m.status()) {
+            printf("Module No.%3d needs global search.\n", m.get_idx());
+            global_search(m);
+            printf("After global search, it's placed at (r, c) = (%3d, %3d) with (w, h) = (%3d, %3d)\n", m.get_pos()[0], m.get_pos()[1], m.get_size()[0], m.get_size()[1]);
+            print_map();
+        }
+    }
+    printf("=====================\n      FINISH\n=====================\n");
     print_map();
+    printf(NONE);
     if (!ofs_floorplan.is_open())
         cout << "fail to write file\n";
     else {
@@ -281,10 +398,10 @@ int main(int argc, char** argv) {
             // printf("%d %d %d\n", R, m.get_pos()[0], m.get_size()[1]);
             ofs_floorplan << m.get_idx() << " " << m.get_pos()[1] << " "  << R - m.get_pos()[0] - m.get_size()[1] << " "
                           << m.get_size()[0] << " " << m.get_size()[1] << "\n";
-            // m.showinfo();
+            m.showinfo();
         }
         ofs_floorplan.close();
     }
-    
+    HPWL = calcHPWL();
     return 0;
 }
