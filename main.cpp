@@ -15,7 +15,8 @@ class Module {
 private:
     int _clb, _mul, _idx;
     int _r = 0, _c = 0;
-    int _w, _h;
+    int _w = 0, _h = 0;
+    bool put;
     // r, c stand for the upper left corner
 
 public:
@@ -23,6 +24,7 @@ public:
         _idx = idx;
         _clb = clb;
         _mul = mul;
+        put = false;
     }
     int get_idx() {
         return _idx;
@@ -42,8 +44,17 @@ public:
     vector <int> get_pos() {
         return {_r, _c};
     }
+    vector<int> get_size() {
+        return {_w, _h};
+    }
     void showinfo() {
-        printf("Module No.%3d: clb = %3d, mul = %3d, pos = (r=%d, c=%d)\n", _idx, _clb, _mul, _r, _c);
+        printf("Module No.%3d: clb = %3d, mul = %3d, (r, c) = (%3d, %3d), (w, h) = (%2d, %2d), put = %d\n", _idx, _clb, _mul, _r, _c, _w, _h, put);
+    }
+    void put_success() {
+        put = true;
+    }
+    bool status() {
+        return put;
     }
 };
 
@@ -92,7 +103,7 @@ void print_map() {
     printf("    ");
     for (int i = 0; i < C; i++) {
         if (i % 10 == 0) 
-            printf("%d", (int)i/10);
+            printf("%d", (int)i/10 % 10);
         else 
             printf(" ");
         
@@ -103,7 +114,7 @@ void print_map() {
     }
     printf("\n");
     for (const auto line: arch) {
-        printf("%3d ", r);
+        printf(NONE"%3d ", r);
         r++;
         for (const auto ch: line) {
             // cout << ch << " ";
@@ -137,7 +148,7 @@ void drawX(int r, int c, int w, int h, int idx) {
 
 
 void place(Module& m) {
-    int left_col, upper_row, acc_R = 0;
+    int acc_R = 0;
     int height, width;
     int clb_needed = m.get_clb(), mul_needed = m.get_mul(), idx = m.get_idx();
     int clb_included = 0, mul_included = 0;
@@ -153,8 +164,6 @@ void place(Module& m) {
             if (arch[r][c] != 'C' && arch[r][c] != 'M')    // this position is already occupied
                 continue;
             else {
-                upper_row = r;
-                left_col = c;
                 if (mul_needed == 0) 
                     height = prev_height;
                 else
@@ -176,12 +185,14 @@ void place(Module& m) {
 
                 // printf("mul inc = %d, clb inc = %d (origin)\n", mul_included, clb_included);
                 if (mul_included >= mul_needed && clb_included >= clb_needed) {
-                        can_put = true;
-                        start_row = r;
-                        prev_height = height;
-                        printf("Module No.%3d is put at (r, c) = (%3d, %3d) with (w, h) = (%2d, %2d)\n", idx, upper_row, left_col, width, height);
-                        drawX(upper_row, left_col, width, height, idx);
-                        return;
+                    can_put = true;
+                    start_row = r;
+                    prev_height = height;
+                    printf("Module No.%3d is put at (r, c) = (%3d, %3d) with (w, h) = (%2d, %2d)\n", idx, r, c, width, height);
+                    drawX(r, c, width, height, idx);
+                    m.set_pos(r, c, width, height);
+                    m.put_success();
+                    return;
                 }
                 while (mul_included < mul_needed || clb_included < clb_needed) {
                     width++;
@@ -198,8 +209,11 @@ void place(Module& m) {
                         can_put = true;
                         start_row = r;
                         prev_height = height;
-                        printf("Module No.%3d is put at (r, c) = (%3d, %3d) with (w, h) = (%2d, %2d)\n", idx, upper_row, left_col, width, height);
-                        drawX(upper_row, left_col, width, height, idx);
+                        printf("Module No.%3d is put at (r, c) = (%3d, %3d) with (w, h) = (%2d, %2d)\n", idx, r, c, width, height);
+                        drawX(r, c, width, height, idx);
+                        m.set_pos(r, c, width, height);
+                        m.put_success();
+                        // m.showinfo();
                         return;
                     }
                 }
@@ -223,6 +237,8 @@ int main(int argc, char** argv) {
 
     ifstream ifs_arch("benchmarks/" + arch_file, ios::in);
     ifstream ifs_module("benchmarks/" + module_file, ios::in);
+    ofstream ofs_floorplan;
+    ofs_floorplan.open("outputs/" + arch_file.substr(0, 5) + ".floorplan");
 
     vector<Module> all_module;
 
@@ -251,11 +267,24 @@ int main(int argc, char** argv) {
 
     sort(all_module.begin(), all_module.end(), comp);
 
-    for (auto m: all_module) {
-        // m.showinfo();
+    for (auto &m: all_module) {
         place(m);
-        print_map();
+        m.showinfo();
+        // print_map();
     }
-        
+    printf("=====================\nFINISH\n=====================\n");
+    print_map();
+    if (!ofs_floorplan.is_open())
+        cout << "fail to write file\n";
+    else {
+        for (auto m: all_module) {
+            // printf("%d %d %d\n", R, m.get_pos()[0], m.get_size()[1]);
+            ofs_floorplan << m.get_idx() << " " << m.get_pos()[1] << " "  << R - m.get_pos()[0] - m.get_size()[1] << " "
+                          << m.get_size()[0] << " " << m.get_size()[1] << "\n";
+            // m.showinfo();
+        }
+        ofs_floorplan.close();
+    }
+    
     return 0;
 }
