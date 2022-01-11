@@ -313,20 +313,44 @@ void global_search(Module& m) {
 }
 
 
-int calcHPWL() {
-    int total = 0;
+double calcHPWL() {
+    double total = 0.0;
     ifstream ifs_net("benchmarks/" + net_file, ios::in);
     ifstream ifs_flr("outputs/" + arch_file.substr(0, 5) + ".floorplan");
     map<int, double> center_x_dict;
     map<int, double> center_y_dict;
-    string s;
+    map<int, vector<int>> net;
+    string s, n;
+
     while (getline(ifs_flr, s)) {
         vector<string> temp = split(s, " ");
-        center_x_dict[stoi(temp[0])] = stoi(temp[3]) % 2 != 0 ? stoi(temp[1]) + stoi(temp[3]) / 2 : stoi(temp[1]) + (stoi(temp[3]) - 1) / 2;
-        center_y_dict[stoi(temp[0])] = stoi(temp[4]) % 2 != 0 ? stoi(temp[2]) + stoi(temp[4]) / 2 : stoi(temp[2]) + (stoi(temp[4]) - 1) / 2;
+        center_x_dict[stoi(temp[0])] = stoi(temp[3]) % 2 != 0 ? stoi(temp[1]) + stoi(temp[3]) / 2 : (double)(stoi(temp[1]) + (double)(stoi(temp[3]) - 1) / 2);
+        center_y_dict[stoi(temp[0])] = stoi(temp[4]) % 2 != 0 ? stoi(temp[2]) + stoi(temp[4]) / 2 : (double)(stoi(temp[2]) + (double)(stoi(temp[4]) - 1) / 2);
     }
     ifs_flr.close();
-    // to be done ...
+    
+    while (getline(ifs_net, n)) {
+        n.erase(remove(n.begin(), n.end(), '{'), n.end());
+        n.erase(remove(n.begin(), n.end(), '}'), n.end());
+        // cout << n << "\n";
+        vector<string> temp2 = split(n, " ");
+        vector<double> c_x, c_y;
+        for (int i = 1; i < temp2.size(); i++) {
+            c_x.push_back(center_x_dict[stoi(temp2[i])]);
+            c_y.push_back(center_y_dict[stoi(temp2[i])]);
+        }
+        // for (int i = 0; i < c_x.size(); i++) {
+        //     printf("c_x = %lf, c_y = %lf\n", c_x[i], c_y[i]);
+        // }
+        total += (double)*max_element(c_x.begin(), c_x.end()) - (double)*min_element(c_x.begin(), c_x.end());
+        total += (double)*max_element(c_y.begin(), c_y.end()) - (double)*min_element(c_y.begin(), c_y.end());
+        // printf("delta x = %lf, delta y = %lf, HPWL = %lf\n", (double)*max_element(c_x.begin(), c_x.end()) - (double)*min_element(c_x.begin(), c_x.end()), 
+        //                                                      (double)*max_element(c_y.begin(), c_y.end()) - (double)*min_element(c_y.begin(), c_y.end()), 
+        //                                                      total);
+    }
+    ifs_net.close();
+
+    
     return total;
 }
 
@@ -344,7 +368,7 @@ int main(int argc, char** argv) {
     ofs_floorplan.open("outputs/" + arch_file.substr(0, 5) + ".floorplan");
 
     vector<Module> all_module;
-    int HPWL;
+    double HPWL;
 
     // set FPGA architecture
     string FPGA_arch;
@@ -385,7 +409,7 @@ int main(int argc, char** argv) {
             printf("Module No.%3d needs global search.\n", m.get_idx());
             global_search(m);
             printf("After global search, it's placed at (r, c) = (%3d, %3d) with (w, h) = (%3d, %3d)\n", m.get_pos()[0], m.get_pos()[1], m.get_size()[0], m.get_size()[1]);
-            print_map();
+            // print_map();
         }
     }
     printf("=====================\n      FINISH\n=====================\n");
@@ -403,5 +427,6 @@ int main(int argc, char** argv) {
         ofs_floorplan.close();
     }
     HPWL = calcHPWL();
+    printf("HPWL = %lf\n", HPWL);
     return 0;
 }
