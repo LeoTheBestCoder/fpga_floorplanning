@@ -398,7 +398,7 @@ int main(int argc, char** argv) {
     for (auto &m: all_module) {
         place(m);
         m.showinfo();
-        // print_map();
+        print_map();
     }
     for (auto &m: all_module) {
         // if (m.status())
@@ -428,5 +428,9 @@ int main(int argc, char** argv) {
     }
     HPWL = calcHPWL();
     printf("HPWL = %lf\n", HPWL);
+    ofstream hp;
+    hp.open("outputs/" + arch_file.substr(0, 5) + ".floorplan", ios_base::app);     // append HPWL value to the end of floorplan file
+    hp << HPWL << "\n";
+    hp.close();
     return 0;
 }
