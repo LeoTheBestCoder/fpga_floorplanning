@@ -12,8 +12,7 @@ I want to find a feasible floorplan that all modules must be placed within the g
     ```
 2. compile the file
     ``` bash
-    cd fpga_floorplanning
-    cd src
+    cd fpga_floorplanning/src
     make clean
     make
     ```

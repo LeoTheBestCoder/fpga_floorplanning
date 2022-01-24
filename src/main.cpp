@@ -310,11 +310,17 @@ void global_search(Module& m) {
 double calcHPWL() {
     double total = 0.0;
     ifstream ifs_net(net_file, ios::in);
-    ifstream ifs_flr("outputs/" + arch_file.substr(0, 5) + ".floorplan");
+    ifstream ifs_flr(floorplan_file);
     map<int, double> center_x_dict;
     map<int, double> center_y_dict;
     map<int, vector<int>> net;
     string s, n;
+
+    if (!ifs_net.is_open())
+        printf("cannot open net file\n");
+    if (!ifs_flr.is_open())
+        printf("cannot open floorplan file\n");
+        
 
     while (getline(ifs_flr, s)) {
         vector<string> temp = split(s, " ");
@@ -356,10 +362,10 @@ int main(int argc, char** argv) {
     net_file = argv[3];
     floorplan_file = argv[4];
 
-    ifstream ifs_arch("benchmarks/" + arch_file, ios::in);
-    ifstream ifs_module("benchmarks/" + module_file, ios::in);
+    ifstream ifs_arch(arch_file, ios::in);
+    ifstream ifs_module(module_file, ios::in);
     ofstream ofs_floorplan;
-    ofs_floorplan.open("outputs/" + arch_file.substr(0, 5) + ".floorplan");
+    ofs_floorplan.open(floorplan_file);
 
     vector<Module> all_module;
     double HPWL;
