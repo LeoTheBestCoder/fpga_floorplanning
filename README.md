@@ -16,7 +16,7 @@ I want to find a feasible floorplan that all modules must be placed within the g
     make clean
     make
     ```
-3. execute (remember to replace {CASE_NUM} to a number between 1 ~ 6)
+3. execute (remember to replace `{CASE_NUM}` with an integer in [1, 6])
     ``` bash 
     cd ../bin
     ./main ../benchmarks/case{CASE_NUM}.arch ../benchmarks/case{CASE_NUM}.module ../benchmarks/case{CASE_NUM}.net ../outputs/case{CASE_NUM}.floorplan
